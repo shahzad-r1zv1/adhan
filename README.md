@@ -2,18 +2,22 @@
 This projects uses a python script which automatically calculates [adhan](https://en.wikipedia.org/wiki/Adhan) times every day and plays all five adhans at their scheduled time using cron. 
 
 ## Prerequisites
-1. Raspberry Pi running Raspbian
+1. Raspberry Pi running Raspberry Pi OS
   1. I would stay away from Raspberry Pi zero esp if you're new to this stuff since it doesn't come with a built in audio out port.
-  2. Also, if you haven't worked with raspberry pi before, I would highly recommend using [these](https://www.raspberrypi.org/documentation/installation/noobs.md) instructions to get it up and running: https://www.raspberrypi.org/documentation/installation/noobs.md
+  2. Also, if you haven't worked with raspberry pi before, I would highly recommend using [Raspberry Pi Imager](https://www.raspberrypi.com/software/) to flash Raspberry Pi OS onto your SD card and get it up and running.
 2. Speakers
 3. Auxiliary audio cable
+4. An audio player. `omxplayer` was used historically, but it is no longer available on current Raspberry Pi OS releases (Bullseye and later) since it depended on the legacy VideoCore firmware. `playAzaan.sh` will automatically use `omxplayer` if present, otherwise it falls back to `mpg123`, `mpv`, `ffplay`, or `vlc`, in that order. Install one with, for example:
+  * `$ sudo apt-get install mpg123`
 
 ## Instructions
 1. Install git: Go to raspberry pi terminal (command line interface) and install `git`
   * `$ sudo apt-get install git`
 2. Clone repo: Clone this repository on your raspberry pi in your `home` directory. (Tip: run `$ cd ~` to go to your home directory)
   * `$ git clone <get repo clone url from github and put it here>`
-  * After doing that you should see an `adhan` direcotry in your `home` directory. 
+  * After doing that you should see an `adhan` directory in your `home` directory.
+3. Install Python dependencies:
+  * `$ pip3 install -r ~/adhan/requirements.txt`
 
 ## Run it for the first time
 Run this command:
@@ -48,6 +52,10 @@ If you look at the last few lines, you'll see that 5 adhan times have been sched
 
 Note that for later runs you do not have to supply any arguments as they are saved in `/home/pi/adhan/.settings`.
 
+The `.settings` file is a single comma-separated line with the fields (in order):
+`lat,lng,method,fajr_azaan_vol,azaan_vol,cron_user,fajr_audio,dhuhr_audio,asr_audio,maghrib_audio,isha_audio`.
+It is generated and updated automatically by `updateAzaanTimers.py`; you normally don't need to edit it by hand.
+
 VOILA! You're done!! Plug in your speakers and enjoy!
 
 Please see the [manual](http://praytimes.org/manual) for advanced configuration instructions. 
@@ -55,6 +63,12 @@ Please see the [manual](http://praytimes.org/manual) for advanced configuration 
 There are 2 additional arguments that are optional, you can set them in the first run or
 further runs: `--fajr-azaan-volume` and `azaan-volume`. You can control the volume of the Azaan
 by supplying numbers in millibels. To get more information on how to select the values, run the command with `-h`.
+
+## Additional configuration options
+
+* `--<prayer>-audio`: Choose which mp3 file to play for a specific prayer, e.g. `--dhuhr-audio Adhan-Makkah.mp3`. By default fajr uses `Adhan-fajr.mp3` and the other four prayers use `Adhan-Madinah.mp3`; several other adhan recordings are bundled in this repo (`Adhan-Makkah.mp3`, `Adhan-Turkish.mp3`, `Adhan-Mishary-Rashid-Al-Afasy.mp3`, etc.) to choose from.
+* `--cron-user`: The OS user under which to install the cron jobs. Defaults to the user currently running the script, so this only needs to be set if you want to install the jobs for a different user.
+* `--dry-run`: Print out the prayer times and cron jobs that would be installed without actually writing them to crontab. Useful for testing changes safely.
 
 ## Configuring custom actions before/after adhan
 
@@ -94,7 +108,13 @@ chmod u+x ./after-hooks.d/01-resume-quran-speaker.sh
 
 ## Tips:
 1. You can see your currently scheduled jobs by running `crontab -l`
-2. The output of the job that runs at 1am every night is being captured in `/home/pi/adhan/adhan.log`. This way you can keep track of all successful runs and any potential issues. This file will be truncated at midnight on the forst day of each month. To view the output type `$ cat /home/pi/adhan/adhan.log`
+2. The output of the job that runs at 1am every night is being captured in `/home/pi/adhan/adhan.log`. This way you can keep track of all successful runs and any potential issues. This file will be truncated at midnight on the first day of each month. To view the output type `$ cat /home/pi/adhan/adhan.log`
+
+## Development
+
+* Install test dependencies: `pip3 install -r requirements.txt pytest flake8`
+* Run tests: `pytest tests/`
+* Run lint: `flake8 .`
 
 ## Credits
 I have made modifications / bug fixes but I've used the following as starting point:
