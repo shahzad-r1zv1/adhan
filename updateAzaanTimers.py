@@ -39,8 +39,8 @@ DEFAULT_AUDIO_FILES = {
 }
 
 # Files in ROOT_DIR that should never be treated as a randomly selectable
-# adhan (fajr's own audio, plus companion "Dua" recordings that are not
-# standalone azaans).
+# adhan (fajr's own audio). Companion "Dua" recordings are excluded
+# separately in get_available_athans() via a substring check on the name.
 RANDOM_AUDIO_EXCLUDE = {DEFAULT_AUDIO_FILES['fajr']}
 
 PT = PrayTimes()
@@ -238,7 +238,8 @@ def main():
     commands = {}
     for prayer in PRAYER_NAMES:
         vol = fajr_azaan_vol if prayer == 'fajr' else azaan_vol
-        print('{} audio: {}'.format(prayer, audio_files[prayer]))
+        if args.dry_run:
+            print('{} audio: {}'.format(prayer, audio_files[prayer]))
         commands[prayer] = '{}/playAzaan.sh {}/{} {}'.format(
             ROOT_DIR, ROOT_DIR, audio_files[prayer], vol)
     update_command = '{}/updateAzaanTimers.py >> {}/adhan.log 2>&1'.format(ROOT_DIR, ROOT_DIR)
