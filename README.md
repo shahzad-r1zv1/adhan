@@ -15,7 +15,7 @@ This projects uses a python script which automatically calculates [adhan](https:
   * `$ sudo apt-get install git`
 2. Clone repo: Clone this repository on your raspberry pi in your `home` directory. (Tip: run `$ cd ~` to go to your home directory)
   * `$ git clone <get repo clone url from github and put it here>`
-  * After doing that you should see an `adhan` direcotry in your `home` directory.
+  * After doing that you should see an `adhan` directory in your `home` directory.
 3. Install Python dependencies:
   * `$ pip3 install -r ~/adhan/requirements.txt`
 
@@ -108,7 +108,7 @@ chmod u+x ./after-hooks.d/01-resume-quran-speaker.sh
 
 ## Tips:
 1. You can see your currently scheduled jobs by running `crontab -l`
-2. The output of the job that runs at 1am every night is being captured in `/home/pi/adhan/adhan.log`. This way you can keep track of all successful runs and any potential issues. This file will be truncated at midnight on the forst day of each month. To view the output type `$ cat /home/pi/adhan/adhan.log`
+2. The output of the job that runs at 1am every night is being captured in `/home/pi/adhan/adhan.log`. This way you can keep track of all successful runs and any potential issues. This file will be truncated at midnight on the first day of each month. To view the output type `$ cat /home/pi/adhan/adhan.log`
 
 ## Development
 

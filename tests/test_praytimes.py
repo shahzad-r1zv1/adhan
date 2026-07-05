@@ -34,7 +34,7 @@ def test_invalid_method_falls_back_to_mwl():
     assert pt.getMethod() == 'MWL'
 
 
-def test_getTimes_accepts_date_object():
+def test_get_times_accepts_date_object():
     pt = PrayTimes('ISNA')
     times = pt.getTimes(date(2024, 6, 1), (43, -80), -5)
     assert times['dhuhr'] != pt.invalidTime

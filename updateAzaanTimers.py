@@ -73,19 +73,23 @@ def merge_args(args):
     audio_files = dict(DEFAULT_AUDIO_FILES)
     try:
         with open(SETTINGS_FILE, 'rt') as f:
-            fields = f.readlines()[0].split(',')
+            content = f.read().strip()
+        fields = [field.strip() for field in content.split(',')]
         # backwards compatible with older .settings files that only stored
         # lat,lng,method,fajr_azaan_vol,azaan_vol
         lat, lng, method, fajr_azaan_vol, azaan_vol = fields[:5]
-        if len(fields) > 5:
+        if len(fields) > 5 and fields[5]:
             cron_user = fields[5]
         for i, prayer in enumerate(PRAYER_NAMES):
             idx = 6 + i
             if len(fields) > idx and fields[idx]:
                 audio_files[prayer] = fields[idx]
     except FileNotFoundError:
+        # Expected on first run before any settings have been saved.
         print('No .settings file found')
     except (ValueError, IndexError):
+        # Settings file exists but is malformed/corrupt; fall back to
+        # whatever was supplied on the command line instead of crashing.
         print('Could not parse .settings file, ignoring its contents')
 
     # merge args (CLI args take precedence over saved values)
@@ -127,10 +131,17 @@ def merge_args(args):
 
 
 def add_azaan_time(prayer_name, prayer_time, cron, command, comment):
+    try:
+        hour, minute = prayer_time.split(':')
+        hour, minute = int(hour), int(minute)
+    except (ValueError, AttributeError):
+        raise ValueError(
+            "Could not compute a valid time for '{}' (got {!r}). "
+            "Check that --lat/--lng/--method are correct for your location."
+            .format(prayer_name, prayer_time))
     job = cron.new(command=command, comment=comment)
-    hour, minute = prayer_time.split(':')
-    job.minute.on(int(minute))
-    job.hour.on(int(hour))
+    job.minute.on(minute)
+    job.hour.on(hour)
     print(job)
 
 

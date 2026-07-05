@@ -28,14 +28,17 @@ run_hooks "$root_dir/before-hooks.d" "before"
 # Play Azaan audio, trying players in order of preference. omxplayer is no
 # longer available on current Raspberry Pi OS releases (Bullseye+), so fall
 # back to other common audio players if it is not installed.
+# mpg123/mpv use a 0-100 volume percentage, so convert millibels to a rough
+# percentage: 0 mB is full volume.
+vol_pct=$(( (vol + 30000) * 100 / 30000 ))
+if [ "$vol_pct" -gt 100 ]; then vol_pct=100; fi
+if [ "$vol_pct" -lt 0 ]; then vol_pct=0; fi
 if command -v omxplayer >/dev/null 2>&1; then
   omxplayer --vol "$vol" -o local "$audio_path"
 elif command -v mpg123 >/dev/null 2>&1; then
-  # mpg123 volume is a scale factor (0-100), convert millibels to a rough
-  # percentage: 0 mB is full volume.
-  mpg123 -q --gain "$(( (vol + 30000) * 100 / 30000 ))" "$audio_path"
+  mpg123 -q --gain "$vol_pct" "$audio_path"
 elif command -v mpv >/dev/null 2>&1; then
-  mpv --no-video --volume="$(( (vol + 30000) * 100 / 30000 ))" "$audio_path"
+  mpv --no-video --volume="$vol_pct" "$audio_path"
 elif command -v ffplay >/dev/null 2>&1; then
   ffplay -nodisp -autoexit -loglevel quiet "$audio_path"
 elif command -v vlc >/dev/null 2>&1; then
