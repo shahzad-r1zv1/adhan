@@ -2,6 +2,8 @@
 
 import datetime
 import getpass
+import os
+import random
 import time
 import sys
 from os.path import dirname, abspath, join as pathjoin
@@ -36,6 +38,11 @@ DEFAULT_AUDIO_FILES = {
     'isha': 'Adhan-Madinah.mp3',
 }
 
+# Files in ROOT_DIR that should never be treated as a randomly selectable
+# adhan (fajr's own audio, plus companion "Dua" recordings that are not
+# standalone azaans).
+RANDOM_AUDIO_EXCLUDE = {DEFAULT_AUDIO_FILES['fajr']}
+
 PT = PrayTimes()
 
 
@@ -64,6 +71,9 @@ def parse_args():
                          help='OS user under which to install the cron jobs (default: current user)')
     parser.add_argument('--dry-run', action='store_true', dest='dry_run',
                          help='Print the cron jobs that would be installed without writing them to crontab')
+    parser.add_argument('--disable-random-audio', action='store_true', dest='disable_random_audio',
+                         help='Always use the configured/default audio for dhuhr, asr, maghrib and isha '
+                              'instead of randomly picking a different adhan recording each run')
     return parser
 
 
@@ -130,6 +140,41 @@ def merge_args(args):
     return lat or None, lng or None, method or None, fajr_azaan_vol or 0, azaan_vol or 0, cron_user, audio_files
 
 
+def get_available_athans():
+    """Return the adhan mp3 files bundled in ROOT_DIR that are eligible for
+    random selection, i.e. every mp3 except fajr's own audio and any
+    companion "Dua" recordings."""
+    athans = []
+    for name in sorted(os.listdir(ROOT_DIR)):
+        if not name.endswith('.mp3'):
+            continue
+        if name in RANDOM_AUDIO_EXCLUDE:
+            continue
+        if 'dua' in name.lower():
+            continue
+        athans.append(name)
+    return athans
+
+
+def randomize_audio_files(audio_files, args):
+    """Mix up which adhan recording is played for dhuhr, asr, maghrib and
+    isha, so the same audio isn't played every time. Prayers whose audio was
+    explicitly set (via CLI flag this run, or a customization already saved
+    in the settings file) are left untouched."""
+    available_athans = get_available_athans()
+    if not available_athans:
+        return audio_files
+    for prayer in PRAYER_NAMES:
+        if prayer == 'fajr':
+            continue
+        if getattr(args, '{}_audio'.format(prayer)):
+            continue  # explicitly requested on the command line this run
+        if audio_files[prayer] != DEFAULT_AUDIO_FILES[prayer]:
+            continue  # explicitly customized in a previous run
+        audio_files[prayer] = random.choice(available_athans)
+    return audio_files
+
+
 def add_azaan_time(prayer_name, prayer_time, cron, command, comment):
     try:
         hour, minute = prayer_time.split(':')
@@ -185,9 +230,15 @@ def main():
 
     now = datetime.datetime.now()
 
+    if args.disable_random_audio:
+        print('Random audio selection disabled; using configured adhan audio files')
+    else:
+        audio_files = randomize_audio_files(audio_files, args)
+
     commands = {}
     for prayer in PRAYER_NAMES:
         vol = fajr_azaan_vol if prayer == 'fajr' else azaan_vol
+        print('{} audio: {}'.format(prayer, audio_files[prayer]))
         commands[prayer] = '{}/playAzaan.sh {}/{} {}'.format(
             ROOT_DIR, ROOT_DIR, audio_files[prayer], vol)
     update_command = '{}/updateAzaanTimers.py >> {}/adhan.log 2>&1'.format(ROOT_DIR, ROOT_DIR)

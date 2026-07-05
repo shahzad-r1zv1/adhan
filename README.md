@@ -67,6 +67,7 @@ by supplying numbers in millibels. To get more information on how to select the 
 ## Additional configuration options
 
 * `--<prayer>-audio`: Choose which mp3 file to play for a specific prayer, e.g. `--dhuhr-audio Adhan-Makkah.mp3`. By default fajr uses `Adhan-fajr.mp3` and the other four prayers use `Adhan-Madinah.mp3`; several other adhan recordings are bundled in this repo (`Adhan-Makkah.mp3`, `Adhan-Turkish.mp3`, `Adhan-Mishary-Rashid-Al-Afasy.mp3`, etc.) to choose from.
+* Random audio: unless a prayer's audio has been explicitly set (via `--<prayer>-audio` or a previously saved customization), `updateAzaanTimers.py` randomly picks a different bundled adhan mp3 for dhuhr, asr, maghrib and isha each time it runs, to mix up which adhan is played. Files with "Dua" in the name and fajr's own audio are never selected this way. Fajr's audio is never randomized. Pass `--disable-random-audio` to always use the configured/default audio instead.
 * `--cron-user`: The OS user under which to install the cron jobs. Defaults to the user currently running the script, so this only needs to be set if you want to install the jobs for a different user.
 * `--dry-run`: Print out the prayer times and cron jobs that would be installed without actually writing them to crontab. Useful for testing changes safely.
 

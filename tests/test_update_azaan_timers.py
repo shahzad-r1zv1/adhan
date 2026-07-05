@@ -10,7 +10,7 @@ import updateAzaanTimers as uat  # noqa: E402
 def make_args(**overrides):
     defaults = dict(
         lat=None, lng=None, method=None, fajr_azaan_vol=None, azaan_vol=None,
-        cron_user=None, dry_run=False,
+        cron_user=None, dry_run=False, disable_random_audio=False,
     )
     for prayer in uat.PRAYER_NAMES:
         defaults['{}_audio'.format(prayer)] = None
@@ -76,3 +76,59 @@ def test_merge_args_handles_corrupt_settings_file(tmp_path, monkeypatch):
 
     assert lat == 30.0
     assert method == 'Egypt'
+
+
+def test_get_available_athans_excludes_fajr_and_dua_files(tmp_path, monkeypatch):
+    monkeypatch.setattr(uat, 'ROOT_DIR', str(tmp_path))
+    for name in ['Adhan-fajr.mp3', 'Adhan-Madinah.mp3', 'Adhan-Makkah.mp3',
+                 'Adhan-Makkah-Dua.mp3', 'DuaAfterAdhan.mp3', 'notes.txt']:
+        (tmp_path / name).write_text('')
+
+    athans = uat.get_available_athans()
+
+    assert athans == ['Adhan-Madinah.mp3', 'Adhan-Makkah.mp3']
+
+
+def test_randomize_audio_files_skips_cli_override(tmp_path, monkeypatch):
+    monkeypatch.setattr(uat, 'ROOT_DIR', str(tmp_path))
+    for name in ['Adhan-fajr.mp3', 'Adhan-Madinah.mp3', 'Adhan-Makkah.mp3']:
+        (tmp_path / name).write_text('')
+
+    audio_files = dict(uat.DEFAULT_AUDIO_FILES)
+    args = make_args(dhuhr_audio='Adhan-Makkah.mp3')
+    audio_files['dhuhr'] = 'Adhan-Makkah.mp3'
+
+    result = uat.randomize_audio_files(audio_files, args)
+
+    assert result['dhuhr'] == 'Adhan-Makkah.mp3'
+    assert result['fajr'] == uat.DEFAULT_AUDIO_FILES['fajr']
+
+
+def test_randomize_audio_files_skips_settings_customization(tmp_path, monkeypatch):
+    monkeypatch.setattr(uat, 'ROOT_DIR', str(tmp_path))
+    for name in ['Adhan-fajr.mp3', 'Adhan-Madinah.mp3', 'Adhan-Makkah.mp3']:
+        (tmp_path / name).write_text('')
+
+    audio_files = dict(uat.DEFAULT_AUDIO_FILES)
+    audio_files['asr'] = 'Adhan-Makkah.mp3'  # previously customized via settings
+    args = make_args()
+
+    result = uat.randomize_audio_files(audio_files, args)
+
+    assert result['asr'] == 'Adhan-Makkah.mp3'
+
+
+def test_randomize_audio_files_randomizes_uncustomized_prayers(tmp_path, monkeypatch):
+    monkeypatch.setattr(uat, 'ROOT_DIR', str(tmp_path))
+    for name in ['Adhan-fajr.mp3', 'Adhan-Madinah.mp3', 'Adhan-Makkah.mp3', 'Adhan-Turkish.mp3']:
+        (tmp_path / name).write_text('')
+    monkeypatch.setattr(uat.random, 'choice', lambda seq: 'Adhan-Turkish.mp3')
+
+    audio_files = dict(uat.DEFAULT_AUDIO_FILES)
+    args = make_args()
+
+    result = uat.randomize_audio_files(audio_files, args)
+
+    assert result['fajr'] == uat.DEFAULT_AUDIO_FILES['fajr']
+    for prayer in ('dhuhr', 'asr', 'maghrib', 'isha'):
+        assert result[prayer] == 'Adhan-Turkish.mp3'
