@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# compatible with python 2.x and 3.x
+#!/usr/bin/env python3
 
 import math
 import re
@@ -134,7 +133,7 @@ class PrayTimes():
 	def __init__(self, method = "MWL") :
 
 		# set methods defaults
-		for method, config in self.methods.items():
+		for method_name, config in self.methods.items():
 			for name, value in self.defaultParams.items():
 				if not name in config['params'] or config['params'][name] is None:
 					config['params'][name] = value
